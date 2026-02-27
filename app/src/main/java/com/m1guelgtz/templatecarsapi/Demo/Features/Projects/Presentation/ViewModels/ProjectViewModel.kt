@@ -11,9 +11,7 @@ import com.m1guelgtz.templatecarsapi.Demo.Features.Tasks.Domain.Entities.Task
 import com.m1guelgtz.templatecarsapi.Demo.Features.Tasks.Domain.Entities.TaskStatus
 import com.m1guelgtz.templatecarsapi.Demo.Features.Tasks.Domain.UseCases.GetTasksByProjectUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -23,7 +21,7 @@ sealed class ProjectListState {
         val projects: List<Project>,
         val totalTasks: Int,
         val inProgressTasks: Int,
-        val projectTaskCounts: Map<String, Pair<Int, Int>> // projectId -> (done, total)
+        val projectTaskCounts: Map<String, Pair<Int, Int>>
     ) : ProjectListState()
     data class Error(val message: String) : ProjectListState()
 }
@@ -34,6 +32,14 @@ sealed class ProjectDetailState {
     data class Success(val project: Project) : ProjectDetailState()
     data class Error(val message: String) : ProjectDetailState()
 }
+
+data class ProjectUiState(
+    val showCreateSheet: Boolean = false,
+    val newName: String = "",
+    val newDesc: String = "",
+    val projectToDelete: Project? = null,
+    val showEditProjectDialog: Boolean = false
+)
 
 @HiltViewModel
 class ProjectViewModel @Inject constructor(
@@ -53,10 +59,12 @@ class ProjectViewModel @Inject constructor(
     private val _projectDetailState = MutableStateFlow<ProjectDetailState>(ProjectDetailState.Idle)
     val projectDetailState: StateFlow<ProjectDetailState> = _projectDetailState.asStateFlow()
 
+    private val _uiState = MutableStateFlow(ProjectUiState())
+    val uiState: StateFlow<ProjectUiState> = _uiState.asStateFlow()
+
     init {
         loadProjects()
         observeUpdates()
-        // Ensure socket is connected to receive background updates for percentages
         webSocketManager.connect(BuildConfig.WS_URL)
     }
 
@@ -66,6 +74,26 @@ class ProjectViewModel @Inject constructor(
                 loadProjects(silent = true)
             }
         }
+    }
+
+    fun onShowCreateSheetChanged(show: Boolean) {
+        _uiState.update { it.copy(showCreateSheet = show) }
+    }
+
+    fun onNewNameChanged(name: String) {
+        _uiState.update { it.copy(newName = name) }
+    }
+
+    fun onNewDescChanged(desc: String) {
+        _uiState.update { it.copy(newDesc = desc) }
+    }
+
+    fun onProjectToDeleteChanged(project: Project?) {
+        _uiState.update { it.copy(projectToDelete = project) }
+    }
+
+    fun onShowEditProjectDialogChanged(show: Boolean) {
+        _uiState.update { it.copy(showEditProjectDialog = show) }
     }
 
     fun loadProjects(silent: Boolean = false) {
@@ -103,10 +131,12 @@ class ProjectViewModel @Inject constructor(
         }
     }
 
-    fun createProject(name: String, description: String?) {
+    fun createProject() {
+        val state = _uiState.value
         viewModelScope.launch {
             try {
-                createProjectUseCase(name, description)
+                createProjectUseCase(state.newName, state.newDesc)
+                _uiState.update { it.copy(newName = "", newDesc = "", showCreateSheet = false) }
                 loadProjects(silent = true)
             } catch (e: Exception) {
                 // Handle error
@@ -126,10 +156,11 @@ class ProjectViewModel @Inject constructor(
         }
     }
 
-    fun updateProject(projectId: String, name: String?, description: String?) {
+    fun updateProject(projectId: String, name: String, description: String) {
         viewModelScope.launch {
             try {
                 updateProjectUseCase(projectId, name, description)
+                _uiState.update { it.copy(showEditProjectDialog = false) }
                 loadProjects(silent = true)
                 getProjectDetails(projectId)
             } catch (e: Exception) {
@@ -142,6 +173,7 @@ class ProjectViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 deleteProjectUseCase(projectId)
+                _uiState.update { it.copy(projectToDelete = null) }
                 loadProjects(silent = true)
             } catch (e: Exception) {
                 // Handle error

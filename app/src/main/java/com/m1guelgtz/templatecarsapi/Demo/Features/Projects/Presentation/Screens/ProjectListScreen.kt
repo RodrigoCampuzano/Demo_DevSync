@@ -45,11 +45,7 @@ fun ProjectListScreen(
     sessionManager: SessionManager
 ) {
     val state by viewModel.projectsState.collectAsStateWithLifecycle()
-    var showCreateSheet by remember { mutableStateOf(false) }
-    var newName by remember { mutableStateOf("") }
-    var newDesc by remember { mutableStateOf("") }
-    
-    var projectToDelete by remember { mutableStateOf<Project?>(null) }
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     Box(modifier = Modifier.fillMaxSize().background(Background)) {
         Column(
@@ -146,7 +142,7 @@ fun ProjectListScreen(
                                     doneTasks = taskCountPair.first,
                                     totalTasks = taskCountPair.second,
                                     onClick = { onProjectClick(project.id) },
-                                    onLongClick = { projectToDelete = project }
+                                    onLongClick = { viewModel.onProjectToDeleteChanged(project) }
                                 )
                             }
                             item { Spacer(modifier = Modifier.height(100.dp)) }
@@ -162,9 +158,9 @@ fun ProjectListScreen(
         }
 
         // FAB
-        if (!showCreateSheet) {
+        if (!uiState.showCreateSheet) {
             FloatingActionButton(
-                onClick = { showCreateSheet = true },
+                onClick = { viewModel.onShowCreateSheetChanged(true) },
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
                     .padding(20.dp),
@@ -176,12 +172,12 @@ fun ProjectListScreen(
             }
         }
 
-        if (showCreateSheet) {
+        if (uiState.showCreateSheet) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(Color.Black.copy(alpha = 0.6f))
-                    .clickable { showCreateSheet = false }
+                    .clickable { viewModel.onShowCreateSheetChanged(false) }
             )
             
             Column(
@@ -220,27 +216,20 @@ fun ProjectListScreen(
                     verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
                     OutlinedTextField(
-                        value = newName,
-                        onValueChange = { newName = it },
+                        value = uiState.newName,
+                        onValueChange = { viewModel.onNewNameChanged(it) },
                         label = { Text("Project Name") },
                         modifier = Modifier.fillMaxWidth()
                     )
                     OutlinedTextField(
-                        value = newDesc,
-                        onValueChange = { newDesc = it },
+                        value = uiState.newDesc,
+                        onValueChange = { viewModel.onNewDescChanged(it) },
                         label = { Text("Description") },
                         modifier = Modifier.fillMaxWidth()
                     )
 
                     Button(
-                        onClick = {
-                            if (newName.isNotBlank()) {
-                                viewModel.createProject(newName, newDesc)
-                                newName = ""
-                                newDesc = ""
-                                showCreateSheet = false
-                            }
-                        },
+                        onClick = { viewModel.createProject() },
                         modifier = Modifier.fillMaxWidth().height(52.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = Primary)
                     ) {
@@ -251,22 +240,21 @@ fun ProjectListScreen(
         }
 
         // Delete Project Confirmation
-        if (projectToDelete != null) {
+        if (uiState.projectToDelete != null) {
             AlertDialog(
-                onDismissRequest = { projectToDelete = null },
+                onDismissRequest = { viewModel.onProjectToDeleteChanged(null) },
                 containerColor = SurfaceContainer,
                 title = { Text("Delete Project?", color = OnSurface) },
-                text = { Text("This will permanently remove '${projectToDelete?.name}' and all its tasks. This action cannot be undone.", color = OnSurfaceVariant) },
+                text = { Text("This will permanently remove '${uiState.projectToDelete?.name}' and all its tasks. This action cannot be undone.", color = OnSurfaceVariant) },
                 confirmButton = {
                     TextButton(onClick = {
-                        viewModel.deleteProject(projectToDelete!!.id)
-                        projectToDelete = null
+                        viewModel.deleteProject(uiState.projectToDelete!!.id)
                     }) {
                         Text("Delete", color = ErrorColor)
                     }
                 },
                 dismissButton = {
-                    TextButton(onClick = { projectToDelete = null }) {
+                    TextButton(onClick = { viewModel.onProjectToDeleteChanged(null) }) {
                         Text("Cancel", color = OnSurfaceVariant)
                     }
                 }

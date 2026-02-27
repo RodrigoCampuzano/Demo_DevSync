@@ -123,17 +123,8 @@ fun LoginScreen(
     onLoginSuccess: () -> Unit,
     viewModel: AuthViewModel = hiltViewModel()
 ) {
-    var activeTab by remember { mutableStateOf("login") }
-    var showPassword by remember { mutableStateOf(false) }
-
-    var loginEmail by remember { mutableStateOf("") }
-    var loginPassword by remember { mutableStateOf("") }
-    
-    var regUsername by remember { mutableStateOf("") }
-    var regEmail by remember { mutableStateOf("") }
-    var regPassword by remember { mutableStateOf("") }
-
     val authState by viewModel.authState.collectAsStateWithLifecycle()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     LaunchedEffect(authState) {
         if (authState is AuthState.Success) {
@@ -201,16 +192,16 @@ fun LoginScreen(
                         modifier = Modifier
                             .weight(1f)
                             .background(
-                                if (activeTab == key) PrimaryContainer else Color.Transparent,
+                                if (uiState.activeTab == key) PrimaryContainer else Color.Transparent,
                                 RoundedCornerShape(10.dp)
                             )
-                            .clickable { activeTab = key }
+                            .clickable { viewModel.onTabChanged(key) }
                             .padding(vertical = 10.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = label,
-                            color = if (activeTab == key) Primary else OnSurfaceVariant,
+                            color = if (uiState.activeTab == key) Primary else OnSurfaceVariant,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.W500,
                             letterSpacing = 0.02.sp
@@ -219,30 +210,30 @@ fun LoginScreen(
                 }
             }
 
-            if (activeTab == "login") {
+            if (uiState.activeTab == "login") {
                 Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                     Column {
                         FieldLabel("Email")
                         AppTextField(
-                            value = loginEmail,
-                            onValueChange = { loginEmail = it },
+                            value = uiState.loginEmail,
+                            onValueChange = { viewModel.onLoginEmailChanged(it) },
                             placeholder = "your@email.com"
                         )
                     }
                     Column {
                         FieldLabel("Password")
                         AppTextField(
-                            value = loginPassword,
-                            onValueChange = { loginPassword = it },
+                            value = uiState.loginPassword,
+                            onValueChange = { viewModel.onLoginPasswordChanged(it) },
                             placeholder = "Enter your password",
-                            visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
+                            visualTransformation = if (uiState.showPassword) VisualTransformation.None else PasswordVisualTransformation(),
                             trailingContent = {
                                 IconButton(
-                                    onClick = { showPassword = !showPassword },
+                                    onClick = { viewModel.onShowPasswordToggled() },
                                     modifier = Modifier.size(24.dp)
                                 ) {
                                     Icon(
-                                        imageVector = if (showPassword) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                        imageVector = if (uiState.showPassword) Icons.Default.VisibilityOff else Icons.Default.Visibility,
                                         contentDescription = "Toggle password",
                                         tint = OnSurfaceVariant,
                                         modifier = Modifier.size(18.dp)
@@ -262,7 +253,7 @@ fun LoginScreen(
                         PrimaryButton(
                             label = "Sign In",
                             onClick = {
-                                viewModel.login(loginEmail, loginPassword)
+                                viewModel.login()
                             }
                         )
                     }
@@ -290,33 +281,33 @@ fun LoginScreen(
                     Column {
                         FieldLabel("Username")
                         AppTextField(
-                            value = regUsername,
-                            onValueChange = { regUsername = it },
+                            value = uiState.regUsername,
+                            onValueChange = { viewModel.onRegUsernameChanged(it) },
                             placeholder = "Choose a username"
                         )
                     }
                     Column {
                         FieldLabel("Email")
                         AppTextField(
-                            value = regEmail,
-                            onValueChange = { regEmail = it },
+                            value = uiState.regEmail,
+                            onValueChange = { viewModel.onRegEmailChanged(it) },
                             placeholder = "your@email.com"
                         )
                     }
                     Column {
                         FieldLabel("Password")
                         AppTextField(
-                            value = regPassword,
-                            onValueChange = { regPassword = it },
+                            value = uiState.regPassword,
+                            onValueChange = { viewModel.onRegPasswordChanged(it) },
                             placeholder = "Create a strong password",
-                            visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
+                            visualTransformation = if (uiState.showPassword) VisualTransformation.None else PasswordVisualTransformation(),
                             trailingContent = {
                                 IconButton(
-                                    onClick = { showPassword = !showPassword },
+                                    onClick = { viewModel.onShowPasswordToggled() },
                                     modifier = Modifier.size(24.dp)
                                 ) {
                                     Icon(
-                                        imageVector = if (showPassword) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                        imageVector = if (uiState.showPassword) Icons.Default.VisibilityOff else Icons.Default.Visibility,
                                         contentDescription = "Toggle password",
                                         tint = OnSurfaceVariant,
                                         modifier = Modifier.size(18.dp)
@@ -333,9 +324,9 @@ fun LoginScreen(
                     } else {
                         PrimaryButton(
                             label = "Create Account",
-                            enabled = regUsername.isNotBlank() && regEmail.isNotBlank() && regPassword.isNotBlank(),
+                            enabled = uiState.regUsername.isNotBlank() && uiState.regEmail.isNotBlank() && uiState.regPassword.isNotBlank(),
                             onClick = {
-                                viewModel.register(regUsername, regEmail, regPassword)
+                                viewModel.register()
                             }
                         )
                     }
