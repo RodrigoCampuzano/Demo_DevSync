@@ -1,0 +1,32 @@
+<svg width="800" height="400" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="100%" height="100%" fill="#141218"/>
+
+  <!-- Boxes -->
+  <rect x="50" y="50" width="150" height="80" rx="10" fill="#D0BCFF" stroke="#4F378B" stroke-width="2"/>
+  <text x="125" y="95" font-family="Arial" font-size="14" text-anchor="middle" fill="#381E72">User UI Action</text>
+
+  <rect x="300" y="50" width="150" height="80" rx="10" fill="#4F378B" stroke="#D0BCFF" stroke-width="2"/>
+  <text x="375" y="95" font-family="Arial" font-size="14" text-anchor="middle" fill="#EADDFF">Optimistic UI</text>
+
+  <rect x="550" y="50" width="150" height="80" rx="10" fill="#1D1B20" stroke="#D0BCFF" stroke-width="2"/>
+  <text x="625" y="95" font-family="Arial" font-size="14" text-anchor="middle" fill="#E6E1E5">REST API (PUT)</text>
+
+  <rect x="300" y="250" width="150" height="80" rx="10" fill="#8C1D18" stroke="#F2B8B5" stroke-width="2"/>
+  <text x="375" y="295" font-family="Arial" font-size="14" text-anchor="middle" fill="#F2B8B5">Rollback (409)</text>
+
+  <!-- Arrows -->
+  <path d="M 200 90 L 290 90" stroke="#CAC4D0" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+  <path d="M 450 90 L 540 90" stroke="#CAC4D0" stroke-width="2" fill="none" marker-end="url(#arrowhead)"/>
+  <path d="M 625 130 L 625 290 L 450 290" stroke="#F2B8B5" stroke-width="2" fill="none" stroke-dasharray="5,5" marker-end="url(#arrowhead)"/>
+
+  <text x="245" y="80" font-family="Arial" font-size="12" text-anchor="middle" fill="#CAC4D0">Immediate</text>
+  <text x="495" y="80" font-family="Arial" font-size="12" text-anchor="middle" fill="#CAC4D0">Background</text>
+  <text x="540" y="280" font-family="Arial" font-size="12" text-anchor="middle" fill="#F2B8B5">Conflict Error</text>
+
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="0" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#CAC4D0" />
+    </marker>
+  </defs>
+</svg>
