@@ -69,15 +69,10 @@ fun ProjectDetailScreen(
     userViewModel: UserViewModel = hiltViewModel()
 ) {
     val projectState by projectViewModel.projectDetailState.collectAsStateWithLifecycle()
+    val projectUiState by projectViewModel.uiState.collectAsStateWithLifecycle()
     val tasksState by taskViewModel.tasksState.collectAsStateWithLifecycle()
+    val taskUiState by taskViewModel.uiState.collectAsStateWithLifecycle()
     val usersState by userViewModel.usersState.collectAsStateWithLifecycle()
-    
-    var addTaskColumn by remember { mutableStateOf<TaskStatus?>(null) }
-    var newTaskTitle by remember { mutableStateOf("") }
-    var newTaskDesc by remember { mutableStateOf("") }
-    
-    var selectedTask by remember { mutableStateOf<Task?>(null) }
-    var showEditProjectDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(projectId) {
         projectViewModel.getProjectDetails(projectId)
@@ -125,7 +120,7 @@ fun ProjectDetailScreen(
                         fontWeight = FontWeight.W500,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.clickable { showEditProjectDialog = true }
+                        modifier = Modifier.clickable { projectViewModel.onShowEditProjectDialogChanged(true) }
                     )
                 }
 
@@ -209,12 +204,12 @@ fun ProjectDetailScreen(
                                 TaskCard(
                                     task = task, 
                                     allUsers = allUsers,
-                                    onClick = { selectedTask = task }
+                                    onClick = { taskViewModel.onSelectedTaskChanged(task) }
                                 )
                             }
 
                             // Add Task Inline
-                            if (addTaskColumn == col.id) {
+                            if (taskUiState.addTaskColumn == col.id) {
                                 Column(
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -224,12 +219,12 @@ fun ProjectDetailScreen(
                                     verticalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
                                     Box(modifier = Modifier.fillMaxWidth()) {
-                                        if (newTaskTitle.isEmpty()) {
+                                        if (taskUiState.newTaskTitle.isEmpty()) {
                                             Text("Task title...", color = Outline, fontSize = 13.sp)
                                         }
                                         BasicTextField(
-                                            value = newTaskTitle,
-                                            onValueChange = { newTaskTitle = it },
+                                            value = taskUiState.newTaskTitle,
+                                            onValueChange = { taskViewModel.onNewTitleChanged(it) },
                                             textStyle = TextStyle(color = OnSurface, fontSize = 13.sp),
                                             cursorBrush = SolidColor(Primary),
                                             modifier = Modifier.fillMaxWidth()
@@ -237,12 +232,12 @@ fun ProjectDetailScreen(
                                     }
                                     
                                     Box(modifier = Modifier.fillMaxWidth()) {
-                                        if (newTaskDesc.isEmpty()) {
+                                        if (taskUiState.newTaskDesc.isEmpty()) {
                                             Text("Brief description...", color = Outline, fontSize = 11.sp)
                                         }
                                         BasicTextField(
-                                            value = newTaskDesc,
-                                            onValueChange = { newTaskDesc = it },
+                                            value = taskUiState.newTaskDesc,
+                                            onValueChange = { taskViewModel.onNewDescChanged(it) },
                                             textStyle = TextStyle(color = OnSurfaceVariant, fontSize = 11.sp),
                                             cursorBrush = SolidColor(Primary),
                                             modifier = Modifier.fillMaxWidth()
@@ -254,15 +249,12 @@ fun ProjectDetailScreen(
                                         horizontalArrangement = Arrangement.End,
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        IconButton(onClick = { addTaskColumn = null }) {
+                                        IconButton(onClick = { taskViewModel.onAddTaskColumnChanged(null) }) {
                                             Icon(Icons.Default.Close, contentDescription = null, modifier = Modifier.size(16.dp))
                                         }
                                         IconButton(onClick = {
-                                            if (newTaskTitle.isNotBlank()) {
-                                                taskViewModel.createTask(projectId, newTaskTitle, newTaskDesc, UserSession.userId)
-                                                newTaskTitle = ""
-                                                newTaskDesc = ""
-                                                addTaskColumn = null
+                                            if (taskUiState.newTaskTitle.isNotBlank()) {
+                                                taskViewModel.createTask(projectId)
                                             }
                                         }) {
                                             Icon(Icons.Default.Check, contentDescription = null, tint = col.color, modifier = Modifier.size(16.dp))
@@ -274,7 +266,7 @@ fun ProjectDetailScreen(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .border(1.dp, OutlineVariant, RoundedCornerShape(12.dp))
-                                        .clickable { addTaskColumn = col.id }
+                                        .clickable { taskViewModel.onAddTaskColumnChanged(col.id) }
                                         .padding(8.dp),
                                     contentAlignment = Alignment.Center
                                 ) {
@@ -291,25 +283,22 @@ fun ProjectDetailScreen(
         }
 
         // Edit Project Dialog
-        if (showEditProjectDialog && project != null) {
-            var editName by remember { mutableStateOf(project.name) }
-            var editDesc by remember { mutableStateOf(project.description ?: "") }
-
+        if (projectUiState.showEditProjectDialog && project != null) {
             AlertDialog(
-                onDismissRequest = { showEditProjectDialog = false },
+                onDismissRequest = { projectViewModel.onShowEditProjectDialogChanged(false) },
                 containerColor = SurfaceContainer,
                 title = { Text("Edit Project", color = OnSurface) },
                 text = {
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         OutlinedTextField(
-                            value = editName,
-                            onValueChange = { editName = it },
+                            value = projectUiState.newName,
+                            onValueChange = { projectViewModel.onNewNameChanged(it) },
                             label = { Text("Name") },
                             modifier = Modifier.fillMaxWidth()
                         )
                         OutlinedTextField(
-                            value = editDesc,
-                            onValueChange = { editDesc = it },
+                            value = projectUiState.newDesc,
+                            onValueChange = { projectViewModel.onNewDescChanged(it) },
                             label = { Text("Description") },
                             modifier = Modifier.fillMaxWidth()
                         )
@@ -317,14 +306,13 @@ fun ProjectDetailScreen(
                 },
                 confirmButton = {
                     TextButton(onClick = {
-                        projectViewModel.updateProject(projectId, editName, editDesc)
-                        showEditProjectDialog = false
+                        projectViewModel.updateProject(projectId, projectUiState.newName, projectUiState.newDesc)
                     }) {
                         Text("Save", color = Primary)
                     }
                 },
                 dismissButton = {
-                    TextButton(onClick = { showEditProjectDialog = false }) {
+                    TextButton(onClick = { projectViewModel.onShowEditProjectDialogChanged(false) }) {
                         Text("Cancel", color = OnSurfaceVariant)
                     }
                 }
@@ -332,31 +320,25 @@ fun ProjectDetailScreen(
         }
 
         // Task Detail Selection UI
-        if (selectedTask != null) {
-            val task = selectedTask!!
+        if (taskUiState.selectedTask != null) {
+            val task = taskUiState.selectedTask!!
             
-            // Move state up so confirmButton can access it
-            var editTitle by remember(task.id) { mutableStateOf(task.title) }
-            var editDescription by remember(task.id) { mutableStateOf(task.description ?: "") }
-            var currentStatus by remember(task.id) { mutableStateOf(task.status) }
-            var currentAssignedTo by remember(task.id) { mutableStateOf(task.assignedTo) }
-
             AlertDialog(
-                onDismissRequest = { selectedTask = null },
+                onDismissRequest = { taskViewModel.onSelectedTaskChanged(null) },
                 containerColor = SurfaceContainer,
                 title = { Text("Edit Task", color = OnSurface) },
                 text = {
                     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                         OutlinedTextField(
-                            value = editTitle,
-                            onValueChange = { editTitle = it },
+                            value = taskUiState.editTitle,
+                            onValueChange = { taskViewModel.onEditTitleChanged(it) },
                             label = { Text("Title") },
                             modifier = Modifier.fillMaxWidth()
                         )
 
                         OutlinedTextField(
-                            value = editDescription,
-                            onValueChange = { editDescription = it },
+                            value = taskUiState.editDescription,
+                            onValueChange = { taskViewModel.onEditDescriptionChanged(it) },
                             label = { Text("Description") },
                             modifier = Modifier.fillMaxWidth()
                         )
@@ -365,15 +347,15 @@ fun ProjectDetailScreen(
                         Column {
                             Text("STATUS", style = MaterialTheme.typography.labelSmall, color = OnSurfaceVariant)
                             ScrollableTabRow(
-                                selectedTabIndex = COLUMNS.indexOfFirst { it.id == currentStatus },
+                                selectedTabIndex = COLUMNS.indexOfFirst { it.id == taskUiState.currentStatus },
                                 edgePadding = 0.dp,
                                 containerColor = Color.Transparent,
                                 divider = {}
                             ) {
                                 COLUMNS.forEach { col ->
                                     Tab(
-                                        selected = currentStatus == col.id,
-                                        onClick = { currentStatus = col.id },
+                                        selected = taskUiState.currentStatus == col.id,
+                                        onClick = { taskViewModel.onCurrentStatusChanged(col.id) },
                                         text = { Text(col.label, fontSize = 10.sp) }
                                     )
                                 }
@@ -389,14 +371,14 @@ fun ProjectDetailScreen(
                                     Row(
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .clickable { currentAssignedTo = user.id }
+                                            .clickable { taskViewModel.onCurrentAssignedToChanged(user.id) }
                                             .padding(vertical = 8.dp),
                                         verticalAlignment = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                                     ) {
                                         Avatar(initials = user.username.take(2).uppercase(), color = "#D0BCFF", size = 24.dp)
                                         Text(user.username, color = OnSurface)
-                                        if (currentAssignedTo == user.id) {
+                                        if (taskUiState.currentAssignedTo == user.id) {
                                             Spacer(modifier = Modifier.weight(1f))
                                             Icon(Icons.Default.Check, contentDescription = null, tint = Primary, modifier = Modifier.size(16.dp))
                                         }
@@ -408,24 +390,14 @@ fun ProjectDetailScreen(
                 },
                 confirmButton = {
                     TextButton(onClick = { 
-                        taskViewModel.updateTask(
-                            taskId = task.id,
-                            projectId = projectId,
-                            title = editTitle,
-                            description = editDescription,
-                            status = currentStatus,
-                            assignedTo = currentAssignedTo,
-                            version = task.version
-                        )
-                        selectedTask = null 
+                        taskViewModel.updateTaskFromDialog(projectId)
                     }) {
                         Text("Save Changes", color = Primary)
                     }
                 },
                 dismissButton = {
                     IconButton(onClick = { 
-                        taskViewModel.deleteTask(task.id, projectId)
-                        selectedTask = null
+                        taskViewModel.deleteTask(projectId)
                     }) {
                         Icon(Icons.Default.Delete, contentDescription = "Delete", tint = ErrorColor)
                     }

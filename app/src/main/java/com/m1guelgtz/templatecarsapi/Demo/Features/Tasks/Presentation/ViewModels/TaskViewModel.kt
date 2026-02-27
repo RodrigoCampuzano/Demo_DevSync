@@ -125,9 +125,9 @@ class TaskViewModel @Inject constructor(
         val state = _uiState.value
         viewModelScope.launch {
             try {
-                createTaskUseCase(projectId, state.newTaskTitle, state.newTaskDesc, UserSession.userId)
+                val task = createTaskUseCase(projectId, state.newTaskTitle, state.newTaskDesc, UserSession.userId)
                 _uiState.update { it.copy(addTaskColumn = null, newTaskTitle = "", newTaskDesc = "") }
-                webSocketManager.sendUpdate(state.newTaskTitle, "TODO", UserSession.userId) // Adjust taskId if possible
+                webSocketManager.sendUpdate(task.id, task.status.name, UserSession.userId)
                 updateEventBus.emitUpdate()
             } catch (e: Exception) {
                 e.printStackTrace()
